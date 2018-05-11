@@ -1,0 +1,16 @@
+{
+  "generator-ecmascript-proposal": {
+    "promptValues": {
+      "authorName": "Ron Buckton",
+      "authorEmail": "ron.buckton@microsoft.com",
+      "authorGithub": "rbuckton",
+      "hasChampion": true,
+      "championName": "Ron Buckton",
+      "championGithub": "rbuckton",
+      "homepage": "https://github.com/rbuckton/proposal-enum#readme",
+      "spec": "https://rbuckton.github.io/proposal-enum",
+      "stage": 0,
+      "sections": {}
+    }
+  }
+}
