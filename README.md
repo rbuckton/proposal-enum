@@ -113,6 +113,28 @@ let x = Named["string name"];
 - All `enum` values in the same _originating declaration_ share a common prototype. That common prototype itself has a prototype shared by _all_ `enum` values, regardless of their _originating declaration_.
 - In addition to defining an `enum` declaratively, you can also define an enum imperatively using the `Enum` built-in object, described in the [API](#API) section.
 
+## Notes
+
+- Why a new primitive type and the proposed strict equality semantics? 
+  - In prior discussions, there are some preferences for the use of [symbol values](https://esdiscuss.org/topic/propose-simpler-string-constant#content-8), 
+    while there are other preferences that include the use of [strings and numbers](https://esdiscuss.org/topic/propose-simpler-string-constant#content-14). 
+    This approach gives you the ability to support both scenarios through operand coercion 
+    and strict-equality semantics. These semantics can only be defined in terms of a new
+    primitive type.
+- Why default to Number?
+  - The auto-increment behavior of enums in other languages is used fairly regularly. Auto-
+    increment is not viable if String or Symbol were the default type. 
+  - We could consider switching on auto-increment if the prior declaration was initialized with a
+    Number, but then you would have confusion over declarations like this:
+
+    ```ts
+    enum Mixed {
+      first, // If this is a Symbol by default...
+      second = 1,
+      third // ...is this a Symbol or the Number `2`?
+    }
+    ```
+
 # API
 
 Enums have the following API:
@@ -461,11 +483,11 @@ The following is a high-level list of tasks to progress through each stage of th
 * [Title](url)
 -->
 
-<!-- # Prior Discussion -->
+# Prior Discussion
 <!-- Links to prior discussion topics on https://esdiscuss.org -->
-<!-- 
-* [Subject](https://esdiscuss.org)
--->
+
+* [Enums?](https://esdiscuss.org/topic/enums)
+* [Propose simpler string constant](https://esdiscuss.org/topic/propose-simpler-string-constant)
 
 <!-- The following are shared links used throughout the README: -->
 
