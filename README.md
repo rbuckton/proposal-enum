@@ -41,7 +41,10 @@ some kind of discriminant:
 
 # Prior Art
 
-* Language: [Concept](url)  
+- C++: [Enumerations](https://docs.microsoft.com/en-us/cpp/cpp/enumerations-cpp)  
+- C#: [Enumeration types](https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/enum)  
+- Java: [Enum types](https://docs.oracle.com/javase/specs/jls/se10/html/jls-8.html#jls-8.9)  
+- TypeScript: [Enums](www.typescriptlang.org/docs/handbook/enums.html)  
 
 
 # Syntax
@@ -79,8 +82,8 @@ enum Named {
 }
 
 // Accessing enum values:
-let red = Color.red;
-let x = Named["string name"];
+let x = Color.red;
+let y = Named["string name"];
 ```
 
 # Semantics
