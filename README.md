@@ -95,16 +95,51 @@ let y = Named["string name"];
 
 # Semantics
 
+## Well-Known Symbols
+
+This proposal introduces three new well-known symbols that are used with enums:
+
+| Specification Name | \[\[Description]] | Value and Purpose |
+|:-|:-|:-|
+| @@toEnum | `"Symbol.toEnum"` | A method that is used to derive the value for an enum member during _EnumMember_ evaluation. |
+| @@formatEnum | `"Symbol.formatEnum"` | A method of an _enum object_ that is used to convert a value into a string representation based on the member names of the enum. Called by `Enum.format`. |
+| @@parseEnum | `"Symbol.parseEnum"` | A method of an _enum object_ that is used to convert a member name String into the value represented by that member of the enum. Called by `Enum.parse`. |
+
+## Properties of the Number Constructor
+
+The Number constructor would have an additional @@toEnum method with parameters `key` and `value`
+that returns the value of `value`.
+
+## Properties of the String Constructor
+
+The String constructor would have an additional @@toEnum method with parameters `key` and `value` 
+that returns a string derived from `key`.
+
+## Properties of the Symbol Constructor
+
+The Symbol constructor would have an additional @@toEnum method that parameters `key` and `value`
+that returns a symbol whose description is derived from `key`.
+
+## Properties of the BigInt Constructor
+
+The BigInt constructor would have an additional @@toEnum method with parameters `key` and `value`
+that returns the value of `value` as a BigInt.
+
 ## Enum Declarations
 
 When an `enum` is declared, its members are evaluated and a new _enum object_ is
 created:
 
-  - An _EnumDeclaration_ may have an `extends` clause whose value must be one of %Number%, 
-    %String%, or %Symbol%, which correspond to a <var>hint</var> of `"number"`, `"string"`,
-    or `"symbol"`, respectively. 
-  - If an _EnumDeclaration_ does not have an `extends` clause, it has a _hint_ of `"number"`. 
-  - The _enum members_ of the declaration are evaluated with the provided <var>hint</var>.
+  - An _EnumDeclaration_ may have an `extends` clause:
+    - The result of evaluating the `extends` clause (<var>memberType</var>) must be an Object with 
+      a @@toEnum method.
+    - The value of this method (<var>enumMap</var>) will be used to determine the initialized 
+      value for each enum member.
+    - If <var>enumMap</var> is not callable, a **TypeError** is thrown.
+  - If an _EnumDeclaration_ does not have an `extends` clause:
+    - <var>memberType</var> would be `undefined`
+    - <var>enumMap</var> would be a built-in function that returns the value provided to its second argument. 
+  - The _enum members_ of the declaration are evaluated with the provided <var>memberType</var> and <var>enumMap</var>.
   - An _EnumDeclaration_ may be decorated, and the decorators may add, remove, or modify _enum members_.
   - An _enum object_ is an Object with a \[\[Prototype]] of `null`.
   - An _enum object_ has an \[\[EnumMembers]] internal slot, which is a List of the names of its
@@ -135,25 +170,25 @@ created:
 
 Enum members consist of a comma-separated list of enum member names with optional initializers:
 
-- _enum members_ are evaluated with a supplied <var>hint</hint>, which must be one of: `"number"`,
-  `"string"`, or `"symbol"`.
+- _enum members_ are evaluated with a supplied <var>memberType</hint> object and <var>enumMap</var>
+  function.
 - Enum names can be identifiers, string literals, or computed property names. When evaluated
   each name is coerced via ToPropertyKey.
 - It is a runtime error for if there are two enum members with the same name.
   - A runtime error is necessary as computed property names must be evaluated.
 - Enum members may be decorated, and the decorator may modify or add new _enum members_, or 
   replace the default initializer.
+- When evaluating _enum members_, <var>autoValue</var> is initialized to 0. This variable is used
+  to manage auto-increment behavior.  
 - If an _enum member_ has an initializer:
-  - The result of the initializer expression will be coerced via ToPrimitive.
+  - The result of the initializer expression will be coerced via ToPrimitive (<var>memberName</var>).
   - The initializer can refer to other named members that have come before it in the same enclosing 
     lexical `enum` declaration.
+  - If the result of evaluating the initializer is an integer, store the result in <var>autoValue</var>.
 - When no initializer is specified:
-  - If the <var>hint</var> is `"number"`, the default value is a Number value whose value is 
-    auto-incremented by `1` starting from `0` or the last initialized Number value.
-  - If the <var>hint</var> is `"string"`, the default value is the SV of the _enum member_'s name.
-  - If the <var>hint</var> is `"symbol"`, the default value is a `Symbol` whose description is
-    the SV of the _enum member_'s name, prefixed with the SV of the containing _EnumDeclaration_'s 
-    name concatenated with a `.`.
+  - The <var>enumMap</var> function is called with <var>memberType</var> as its receiver and the 
+    arguments <var>memberName</var> and <var>autoValue</var>.
+  - <var>autoValue</var> is incremented by 1.
 
 Enum members are `[[Writable]]`: **false**, `[[Enumerable]]`: **false**, and `[[Configurable]]`: 
 **false**.
@@ -162,8 +197,6 @@ Enum members are `[[Writable]]`: **false**, `[[Enumerable]]`: **false**, and `[[
 
 To make it easier to work with enums, an `Enum` object is added to the global scope, with the following
 methods:
-
-> NOTE: If `Enum` turns out to be web-incompatible, these methods could instead be added to `Reflect`.
 
 - `Enum.keys(E)` - Returns an `Iterator` for the member names in the \[\[EnumMembers]] internal 
   slot of `E`.
