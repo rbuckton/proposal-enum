@@ -107,23 +107,24 @@ This proposal introduces three new well-known symbols that are used with enums:
 
 ## Properties of the Number Constructor
 
-The Number constructor would have an additional @@toEnum method with parameters `key` and `value`
-that returns the value of `value`.
+The Number constructor would have an additional @@toEnum method with parameters `key` and 
+`autoValue` that returns the result of post-incrementing `autoValue.value` by `1`.
 
 ## Properties of the String Constructor
 
-The String constructor would have an additional @@toEnum method with parameters `key` and `value` 
-that returns a string derived from `key`.
+The String constructor would have an additional @@toEnum method with parameters `key` and 
+`autoValue` that returns a string derived from `key`.
 
 ## Properties of the Symbol Constructor
 
-The Symbol constructor would have an additional @@toEnum method that parameters `key` and `value`
-that returns a symbol whose description is derived from `key`.
+The Symbol constructor would have an additional @@toEnum method that parameters `key` and 
+`autoValue` that returns a symbol whose description is derived from `key`.
 
 ## Properties of the BigInt Constructor
 
-The BigInt constructor would have an additional @@toEnum method with parameters `key` and `value`
-that returns the value of `value` as a BigInt.
+The BigInt constructor would have an additional @@toEnum method with parameters `key` and 
+`autoValue` that returns result of post-incrementing `autoValue.value` (coerced to a 
+BigInt) by `1n`.
 
 ## Enum Declarations
 
@@ -178,17 +179,17 @@ Enum members consist of a comma-separated list of enum member names with optiona
   - A runtime error is necessary as computed property names must be evaluated.
 - Enum members may be decorated, and the decorator may modify or add new _enum members_, or 
   replace the default initializer.
-- When evaluating _enum members_, <var>autoValue</var> is initialized to 0. This variable is used
+- When evaluating _enum members_, <var>autoValue</var> is initialized to `{ value: 0 }`. This variable is used
   to manage auto-increment behavior.  
 - If an _enum member_ has an initializer:
   - The result of the initializer expression will be coerced via ToPrimitive (<var>memberName</var>).
   - The initializer can refer to other named members that have come before it in the same enclosing 
     lexical `enum` declaration.
-  - If the result of evaluating the initializer is an integer, store the result in <var>autoValue</var>.
+  - If the result of evaluating the initializer is a value that when coerced to an Object is an 
+    instance of <var>memberType</var>, store the result in <var>autoValue</var>.
 - When no initializer is specified:
   - The <var>enumMap</var> function is called with <var>memberType</var> as its receiver and the 
     arguments <var>memberName</var> and <var>autoValue</var>.
-  - <var>autoValue</var> is incremented by 1.
 
 Enum members are `[[Writable]]`: **false**, `[[Enumerable]]`: **false**, and `[[Configurable]]`: 
 **false**.
