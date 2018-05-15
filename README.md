@@ -208,7 +208,9 @@ methods:
   and the enum member value at index 1.
 - `Enum.has(E, key)` - Returns `true` if the the \[\[EnumMembers]] internal slot of `E` contains `key`.
 - `Enum.hasValue(E, value)` - Returns `true` if the \[\[EnumMembers]] internal slot of `E` contains a
-  member whose value on `E` corresponds to`value`.
+  member whose value on `E` corresponds to `value`.
+- `Enum.getName(E, value)` - Gets the first name in the \[\[EnumMembers]] internal slot of `E` whose
+  value on `E` corresponds to `value`.
 - `Enum.format(E, value)` - Calls the @@formatEnum method of `E` with argument `value`.
 - `Enum.parse(E, value)` - Calls the @@parseEnum method of `E` with argument `value`.
 - `Enum.create(members)` - Creates an _enum object_ using the property keys and values of `members`
@@ -229,6 +231,7 @@ let Enum: {
   entries(E: object): IterableIterator<[string | symbol, any]>;
   has(E: object, key: string | symbol): boolean;
   hasValue(E: object, value: any): boolean;
+  getName(E: object, value: any): string | undefined;
   format(E: object, value: any): string | symbol | undefined;
   parse(E: object, value: string): any;
   create(members: object): object;
@@ -240,37 +243,6 @@ let Enum: {
 # Grammar
 
 ```grammarkdown
-EnumDeclaration[Yield, Await, Default] :
-  `enum` BindingIdentifier[?Yield, ?Await] EnumTail[?Yield, ?Await]
-  [+Default] `enum` EnumTail[?Yield, ?Await]
-
-EnumExpression[Yield, Await] :
-  `enum` BindingIdentifier[?Yield, ?Await]? EnumTail[?Yield, ?Await]
-
-EnumTail[Yield, Await] :
-  `{` EnumBody[?Yield, ?Await] `}`
-
-EnumBody[Yield, Await] :
-  EnumElementList[?Yield, ?Await]
-
-EnumElementList[Yield, Await] :
-  EnumElement[?Yield, ?Await]
-  EnumElementList[?Yield, ?Await] `,` EnumElement[?Yield, ?Await]
-
-EnumElement[Yield, Await] :
-  PropertyName[?Yield, ?Await] Initializer[+In, ?Yield, ?Await]?
-
-PrimaryExpression[Yield, Await] :
-  ...
-  EnumExpression[?Yield, ?Await]
-
-Declaration[Yield, Await] :
-  ...
-  EnumDeclaration[?Yield, ?Await]
-
-ExportDeclaration :
-  `export` `default` EnumDeclaration[~Yield, ~Await, +Default]
-  `export` `default` [lookahead ∉ { `function`, `async` [no LineTerminator here] `function`, `class`, `enum` }] AssignmentExpression[+In, ~Yield, ~Await];
 ```
 -->
 
@@ -331,11 +303,11 @@ enum AToB {
     b = "a",
 }
 
-Enum.parse(AToB, "a") === AToB.a // "b"
-Enum.parse(AToB, "b") === AToB.b // "a"
+Enum.parse(AToB, "a") === AToB.a
+Enum.parse(AToB, "b") === AToB.b
 
-Enum.format(AToB, AToB.a) === "b"
-Enum.format(AToB, AToB, b) === "a"
+Enum.getName(AToB, AToB.a) === "b"
+Enum.getName(AToB, AToB, b) === "a"
 
 // `Enum.create()` lets you create a new enum programmatically:
 const SyntaxKind = Enum.create({ 
