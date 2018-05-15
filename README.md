@@ -110,13 +110,9 @@ This proposal introduces three new well-known symbols that are used with enums:
 The Number constructor would have an additional @@toEnum method with parameters `key` and 
 `autoValue` that performs the following steps:
 
-1. Let `value` be `autoValue.value`.
-1. If `value` is `undefined`, 
-  1. Set `autoValue.value` to be `1`.
-  1. Return `0`.
-1. Else,
-  1. Increment `autoValue.value` by `1`.
-  1. Return `value`.
+1. If `autoValue.value` is `undefined`, set `autoValue.value` to `0`.
+1. Else, increment `autoValue.value` by `1`.
+1. Return `autoValue.value`.
 
 ## Properties of the String Constructor
 
@@ -133,13 +129,9 @@ The Symbol constructor would have an additional @@toEnum method that parameters 
 The BigInt constructor would have an additional @@toEnum method with parameters `key` and 
 `autoValue` that performs the following steps:
 
-1. Let `value` be `autoValue.value`.
-1. If `value` is `undefined`, 
-  1. Set `autoValue.value` to be `1n`.
-  1. Return `0n`.
-1. Else,
-  1. Increment `autoValue.value` by `1n`.
-  1. Return `value`.
+1. If `autoValue.value` is `undefined`, set `autoValue.value` to `0n`.
+1. Else, increment `autoValue.value` by `1n`.
+1. Return `autoValue.value`.
 
 ## Enum Declarations
 
