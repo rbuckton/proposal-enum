@@ -195,8 +195,8 @@ As we evaluate each _enum member_, we perform the following steps:
 1. Add `key` to the List of member names in the \[\[EnumMembers]] internal slot of the 
   _enum object_.
 1. Define a new property on the _enum object_ with the name `key` and the value `value`,
-  and the attributes `[[Writable]]`: **false**, `[[Enumerable]]`: **false**, and 
-  `[[Configurable]]`: **false**.
+  and the attributes `[[Writable]]`: **false**, `[[Configurable]]`: **false**, and
+  `[[Enumerable]]`: **true**.
 
 In addition, the following additional properties are added to _enum objects_:
 
