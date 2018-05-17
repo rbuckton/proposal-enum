@@ -52,7 +52,7 @@ some kind of discriminant:
 ```ts
 // enum declarations
 
-// Implicitly extends `Number`, auto-increments values by 1 starting at 0
+// Each auto-initialized member value is a `Number`, auto-increments values by 1 starting at 0
 enum Numbers {
   zero,
   one,
@@ -61,23 +61,22 @@ enum Numbers {
   alsoThree = three
 }
 
-// Explicitly extends `Number`, auto-increments values by 1 starting at 0
-enum Colors extends Number {
+// Each auto-initialized member value is a `Number`, auto-increments values by 1 starting at 0
+enum Colors of Number {
   red,
   green,
   blue
 }
 
-// Explicitly extends `String`, each value is the SV of its member name.
-enum PlayState extends String {
+// Each auto-initialized member value is a `String` whose value is the SV of its member name.
+enum PlayState of String {
   idle,
   running,
   paused
 }
 
-// Explicitly extends `Symbol`, each value is a `Symbol` whose description is the SV of its 
-// member name.
-enum Symbols extends Symbol {
+// Each auto-initialized member value is a `Symbol` whose description is the SV of its member name.
+enum Symbols of Symbol {
   alpha,
   beta
 }
@@ -107,98 +106,118 @@ This proposal introduces three new well-known symbols that are used with enums:
 
 ## Properties of the Number Constructor
 
-The Number constructor would have an additional @@toEnum method with parameters `key` and 
-`autoValue` that performs the following steps:
+The Number constructor would have an additional @@toEnum method with parameters `key`, `value`, 
+and `autoValue` that performs the following steps:
 
-1. If `autoValue.value` is `undefined`, set `autoValue.value` to `0`.
-1. Else, increment `autoValue.value` by `1`.
-1. Return `autoValue.value`.
+1. If Type(`value`) is not Number, set `value` to `autoValue`.
+1. If `value` is `undefined`, return `0`.
+1. Return `value + 1`.
 
 ## Properties of the String Constructor
 
-The String constructor would have an additional @@toEnum method with parameters `key` and 
-`autoValue` that returns a string derived from `key`.
+The String constructor would have an additional @@toEnum method with parameters `key`, `value`,
+and `autoValue` that returns a string derived from `key`.
 
 ## Properties of the Symbol Constructor
 
-The Symbol constructor would have an additional @@toEnum method that parameters `key` and 
-`autoValue` that returns a symbol whose description is derived from `key`.
+The Symbol constructor would have an additional @@toEnum method that parameters `key`, `value`,
+and `autoValue` that returns a symbol derived from `key`.
 
 ## Properties of the BigInt Constructor
 
-The BigInt constructor would have an additional @@toEnum method with parameters `key` and 
-`autoValue` that performs the following steps:
+The BigInt constructor would have an additional @@toEnum method with parameters `key`, `value`,
+and `autoValue` that performs the following steps:
 
-1. If `autoValue.value` is `undefined`, set `autoValue.value` to `0n`.
-1. Else, increment `autoValue.value` by `1n`.
-1. Return `autoValue.value`.
+1. If Type(`value`) is not BigInt, set `value` to `autoValue`.
+1. If `value` is `undefined`, return `0n`.
+1. Return `value + 1n`.
 
 ## Enum Declarations
 
-When an `enum` is declared, its members are evaluated and a new _enum object_ is
-created:
+Enum declarations consist of a finite set of _enum members_ that define the names and values
+for each member of the enum. These results are stored as properties of an _enum object_. An 
+_enum object_ is an ordinary object with an \[\[EnumMembers]] internal slot, and whose 
+\[\[Prototype]] is `null`.
 
-  - An _EnumDeclaration_ may have an `extends` clause:
-    - The result of evaluating the `extends` clause (<var>memberType</var>) must be an Object with 
-      a @@toEnum method.
-    - The value of this method (<var>enumMap</var>) will be used to determine the initialized 
-      value for each enum member.
-    - If <var>enumMap</var> is not callable, a **TypeError** is thrown.
-  - If an _EnumDeclaration_ does not have an `extends` clause:
-    - <var>memberType</var> would be `undefined`
-    - <var>enumMap</var> would be a built-in function that returns the value provided to its second argument. 
-  - The _enum members_ of the declaration are evaluated with the provided <var>memberType</var> and <var>enumMap</var>.
-  - An _EnumDeclaration_ may be decorated, and the decorators may add, remove, or modify _enum members_.
-  - An _enum object_ is an Object with a \[\[Prototype]] of `null`.
-  - An _enum object_ has an \[\[EnumMembers]] internal slot, which is a List of the names of its
-    [Enum Members](#enum-members).
-  - An _enum object_ has an @@parseEnum property whose value is a Function that returns the value
-    of the _enum member_ whose name corresponds to the provided argument. 
+### Automatic Initialization
+
+If an _enum member_ does not supply an _Initializer_, the value of that _enum member_ will be 
+automatically initialized:
+
+```js
+enum DaysOfTheWeek {
+  Sunday, // 0
+  Monday, // 1
+  Tuesday, // 2
+  // etc.
+}
+```
+
+Auto-initialization can be controlled through the use of an `of` clause:
+
+```js
+enum DaysOfTheWeek of Symbol {
+  Sunday, // Symbol("Sunday")
+  Monday, // Symbol("Monday")
+  Tuesday, // Symbol("Tuesday")
+  // etc.
+}
+```
+
+Constructors for built-in primitive values like `String`, `Number`, `Symbol`, and `BigInt` are 
+defined to have a `@@toEnum` method that is used during evaluation to select an 
+auto-initialization value. If the expression in the `of` clause does not have a `@@toEnum` method,
+it will instead be called directly. This allows constructors for built-ins to be used in the `of`
+clause without adding a niche constructor overload. This also allows developers to control the 
+behavior of `of` if its expression is an ECMAScript `class` which cannot be called directly.
+
+### Evaluation
+
+Before we evaluate the _enum members_ of the declaration, we first choose a `mapper` Object. 
+If the enum declaration has an `of` clause, the `mapper` is the result of evaluating that clause.
+Otherwise, `mapper` uses the default value of %Number%.
+
+From the `mapper` we then get an `enumMap` function from `mapper[@@toEnum]`. If `enumMap` is
+`undefined`, then we set `enumMap` to `mapper` and `mapper` to `undefined`.
+
+To support auto-initialization we also define to variables (both initialized to `undefined`): 
+- `value`: Stores the result of the last explicit or automatic initialization.
+- `autoValue`: Stores the result of the last automatic initialization only.
+
+As we evaluate each _enum member_, we perform the following steps:
+
+1. Derive `key` from the _enum member_'s name.
+1. If the _enum member_ has an _Initializer_, 
+    1. Set `value` to be the result of evaluating _Initializer_.
+1. Else,
+    1. Set `autoValue` to be ? Call(`enumMap`, `mapper`, &laquos; `key`, `value`, `autoValue`)
+    1. Set `value` to be `autoValue`
+1. Add `key` to the List of member names in the \[\[EnumMembers]] internal slot of the 
+  _enum object_.
+1. Define a new property on the _enum object_ with the name `key` and the value `value`,
+  and the attributes `[[Writable]]`: **false**, `[[Enumerable]]`: **false**, and 
+  `[[Configurable]]`: **false**.
+
+In addition, the following additional properties are added to _enum objects_:
+
+  - A `@@parseEnum` property whose value is a Function that returns the value of the _enum member_ 
+    whose name corresponds to the provided argument. 
     - This member is \[\[Writable]]: `false`, \[\[Configurable]]: `true`, and 
       \[\[Enumerable]]: `false`.
-  - An _enum object_ has an @@formatEnum property whose value is a Function that returns the name
-    of the first _enum member_ whose value corresponds to the provided argument.
+  - A `@@formatEnum` property whose value is a Function that returns the name of the first 
+    _enum member_ whose value corresponds to the provided argument.
     - This member is \[\[Writable]]: `false`, \[\[Configurable]]: `true`, and 
       \[\[Enumerable]]: `false`.
-  - An _enum object_ has an @@toStringTag property whose value is `"Enum"`.
+  - A `@@toStringTag` property whose value is `"Enum"`.
     - This member is \[\[Writable]]: `false`, \[\[Configurable]]: `true`, and 
       \[\[Enumerable]]: `false`.
-  - An _enum object_ has an @@iterator property whose value is a Function that returns an iterator
-    for this enum's \[\[EnumMembers]] internal slot where each yielded value is a two-element 
-    array containing the enum member name at index 0 and the enum member value at index 1.
+  - An `@@iterator` property whose value is a Function that returns an iterator for this enum's 
+    \[\[EnumMembers]] internal slot where each yielded value is a two-element array containing the 
+    enum member name at index 0 and the enum member value at index 1.
     - This member is \[\[Writable]]: `false`, \[\[Configurable]]: `true`, and 
       \[\[Enumerable]]: `false`.
-  - An _enum object_ has a property for each _enum member_ with that _enum member_'s name,
-    whose value is that _enum member_'s value. 
-    - These properties are \[\[Writable]]: `false`, \[\[Configurable]]: `false`, and 
-      \[\[Enumerable]]: `true`.
-  - An _enum object_'s \[\[Extensible]] internal slot is `false`.
-
-## Enum Members
-
-Enum members consist of a comma-separated list of enum member names with optional initializers:
-
-- _enum members_ are evaluated with a supplied `memberType` object and `enumMap`
-  function.
-- Enum names can be identifiers, string literals, or computed property names. When evaluated
-  each name is coerced via ToPropertyKey.
-- It is a runtime error for if there are two enum members with the same name.
-  - A runtime error is necessary as computed property names must be evaluated.
-- Enum members may be decorated, and the decorator may modify or add new _enum members_, or 
-  replace the default initializer.
-- When evaluating _enum members_, `autoValue` is initialized to `{ value: undefined }`. This variable is used
-  to manage auto-increment behavior.  
-- If an _enum member_ has an initializer:
-  - The initializer can refer to other named members that have come before it in the same enclosing 
-    lexical `enum` declaration.
-  - The result of the initializer expression will be coerced via ToPrimitive (`memberValue`).
-  - If ToObject(`memberValue`) is an instance of `memberType`, store the result in `autoValue.value`.
-- When no initializer is specified:
-  - The `enumMap` function is called with `memberType` as its receiver and the 
-    arguments `memberName` and `autoValue`.
-
-Enum members are `[[Writable]]`: **false**, `[[Enumerable]]`: **false**, and `[[Configurable]]`: 
-**false**.
+  
+Finally, the _enum object_ is made non-extensible.
 
 # API
 
@@ -217,16 +236,16 @@ methods:
   member whose value on `E` corresponds to `value`.
 - `Enum.getName(E, value)` - Gets the first name in the \[\[EnumMembers]] internal slot of `E` whose
   value on `E` corresponds to `value`.
-- `Enum.format(E, value)` - Calls the @@formatEnum method of `E` with argument `value`.
-- `Enum.parse(E, value)` - Calls the @@parseEnum method of `E` with argument `value`.
+- `Enum.format(E, value)` - Calls the `@@formatEnum` method of `E` with argument `value`.
+- `Enum.parse(E, value)` - Calls the `@@parseEnum` method of `E` with argument `value`.
 - `Enum.create(members)` - Creates an _enum object_ using the property keys and values of `members`
   as the _enum members_ for the new enum.
 - `Enum.flags(descriptor)` - A built-in decorator that modifies the _enum object_ in the following ways:
   - The auto-increment behavior is changed to shift the current auto-increment value left by 1. 
-  - The @@parseEnum method is modified to parse a comma-separated string and OR the resulting values
+  - The `@@parseEnum` method is modified to parse a comma-separated string and OR the resulting values
     together. If no corresponding name can be found and the name can be successfully coerced to a number,
     that number is OR'ed with the result.
-  - The @@formatEnum method is modified to convert a bitwise combination of flag values into a comma
+  - The `@@formatEnum` method is modified to convert a bitwise combination of flag values into a comma
     separated string of corresponding names. If no corresponding name can be found, the SV of the 
     bits is appended to the string.
 
@@ -265,7 +284,7 @@ Enum.getName(Numbers, 0) === "zero"
 Enum.parse(Numbers, "zero") === 0
 
 // ... strings, ...
-enum HttpMethods extends String { GET, PUT, POST, DELETE }
+enum HttpMethods of String { GET, PUT, POST, DELETE }
 
 typeof HttpMethods.GET === "string"
 HttpMethods.GET === "GET"
@@ -277,7 +296,7 @@ typeof Switch.on === "boolean";
 Switch.on === true
 
 // ... symbols, ...
-enum AlphaBeta extends Symbol { alpha, beta }
+enum AlphaBeta of Symbol { alpha, beta }
 
 typeof AlphaBeta.alpha === "symbol";
 AlphaBeta.alpha.toString() === "Symbol(AlphaBeta.alpha)";
@@ -355,7 +374,7 @@ Enum.parse(FileMode, "read, 4") === 5 // FileMode.read | FileMode.exclusive
     [symbol values](https://esdiscuss.org/topic/propose-simpler-string-constant#content-8), 
     while there are other preferences that include the use of 
     [strings and numbers](https://esdiscuss.org/topic/propose-simpler-string-constant#content-14). 
-    This approach gives you the ability to support both scenarios through the optional `extends` clause.
+    This approach gives you the ability to support both scenarios through the optional `of` clause.
   - The auto-increment behavior of enums in other languages is used fairly regularly. Auto-
     increment is not viable if String or Symbol were the default type. 
   - We could consider switching on auto-increment if the prior declaration was initialized with a
