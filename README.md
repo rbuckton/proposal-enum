@@ -51,12 +51,8 @@ some kind of discriminant:
 
 ```ts
 // enum declarations
-enum Colors {
-  red,
-  green,
-  blue
-}
 
+// Each auto-initialized member value is a `Number`, auto-increments values by 1 starting at 0
 enum Numbers {
   zero,
   one,
@@ -65,20 +61,30 @@ enum Numbers {
   alsoThree = three
 }
 
-enum PlayState {
-  idle = "idle",
-  running = "running",
-  paused = "paused"
+// Each auto-initialized member value is a `Number`, auto-increments values by 1 starting at 0
+enum Colors of Number {
+  red,
+  green,
+  blue
 }
 
-enum Symbols {
-  alpha = Symbol("alpha"),
-  beta = Symbol("beta")
+// Each auto-initialized member value is a `String` whose value is the SV of its member name.
+enum PlayState of String {
+  idle,
+  running,
+  paused
+}
+
+// Each auto-initialized member value is a `Symbol` whose description is the SV of its member name.
+enum Symbols of Symbol {
+  alpha,
+  beta
 }
 
 enum Named {
   identifierName,
-  "string name"
+  "string name",
+  [expr]
 }
 
 // Accessing enum values:
@@ -88,227 +94,180 @@ let y = Named["string name"];
 
 # Semantics
 
+## Well-Known Symbols
+
+This proposal introduces three new well-known symbols that are used with enums:
+
+| Specification Name | \[\[Description]] | Value and Purpose |
+|:-|:-|:-|
+| @@toEnum | `"Symbol.toEnum"` | A method that is used to derive the value for an enum member during _EnumMember_ evaluation. |
+| @@formatEnum | `"Symbol.formatEnum"` | A method of an _enum object_ that is used to convert a value into a string representation based on the member names of the enum. Called by `Enum.format`. |
+| @@parseEnum | `"Symbol.parseEnum"` | A method of an _enum object_ that is used to convert a member name String into the value represented by that member of the enum. Called by `Enum.parse`. |
+
+## Properties of the Number Constructor
+
+The Number constructor would have an additional @@toEnum method with parameters `key`, `value`, 
+and `autoValue` that performs the following steps:
+
+1. If Type(`value`) is not Number, set `value` to `autoValue`.
+1. If `value` is `undefined`, return `0`.
+1. Return `value + 1`.
+
+## Properties of the String Constructor
+
+The String constructor would have an additional @@toEnum method with parameters `key`, `value`,
+and `autoValue` that returns a string derived from `key`.
+
+## Properties of the Symbol Constructor
+
+The Symbol constructor would have an additional @@toEnum method that parameters `key`, `value`,
+and `autoValue` that returns a symbol derived from `key`.
+
+## Properties of the BigInt Constructor
+
+The BigInt constructor would have an additional @@toEnum method with parameters `key`, `value`,
+and `autoValue` that performs the following steps:
+
+1. If Type(`value`) is not BigInt, set `value` to `autoValue`.
+1. If `value` is `undefined`, return `0n`.
+1. Return `value + 1n`.
+
 ## Enum Declarations
 
-When an `enum` is declared, its members are evaluated and a new _enum constructor function_ is
-created:
+Enum declarations consist of a finite set of _enum members_ that define the names and values
+for each member of the enum. These results are stored as properties of an _enum object_. An 
+_enum object_ is an ordinary object with an \[\[EnumMembers]] internal slot, and whose 
+\[\[Prototype]] is `null`.
 
-  - When called, the constructor function coerces its argument to an enum value (similar to the 
-    behavior of `String`, `Number`, and `Boolean`), with precedence given to the earlier 
-    declarations: 
-    ```js
-    enum Numbers { zero, one, two, three, alsoThree = 3 }
-    Numbers(1) === Numbers.one
-    Numbers(3) === Numbers.three // (as opposed to `Numbers.alsoThree`)
-    ```
-  - When `new`-ed, the constructor function returns a wrapper `Object` that boxes the enum value
-    (Similar to the behavior of `String`, `Number`, and `Boolean`). 
+### Automatic Initialization
 
-An _enum constructor function_ has a number of common methods, described in the [API](#API) section
-below.
-
-Enums can also be created programmatically via the global `Enum.create()` method, also described in
-the [API](#API) section.
-
-## Enum Members
-
-Enum members consist of a comma-separated list of enum member names with optional initializers:
-
-- Enum names can be identifiers or string literals.
-- The result of the initializer expression must be either `Number`, `String`, `Symbol`, `Boolean`,
-  or another `enum` value.
-- If the result of the initializer expression is another `enum` value, its _underlying primitive 
-  value_ is used instead.
-- The initializer can refer to other named members that have come before it in the same enclosing 
-  lexical `enum` declaration.
-- When no initializer is specified:
-  - The default _underlying primitive type_ of an `enum` value is Number.
-  - `enum` values auto-increment by `1` starting from `0` or the last initialized Number value.
-
-Enum members are `[[Writable]]`: **false**, `[[Enumerable]]`: **false**, and `[[Configurable]]`: 
-**false**.
-
-Enum members can be accessed and modified programmatically via methods on the global `Enum` 
-object, as described in the [API](#API) section.
-
-## Enum Values
-
-Enum values are a new primitive type, `enum`, that are composed of two parts: An _underlying 
-primitive value_ (which must be either a `Number`, `String`, `Symbol`, or `Boolean`) and a 
-reference to its _originating declaration_ (which is used for coercion and equality): 
+If an _enum member_ does not supply an _Initializer_, the value of that _enum member_ will be 
+automatically initialized:
 
 ```js
-typeof Numbers.zero === "enum"
-Numbers.zero.valueOf() === 0
-Numbers.zero.toString() === "zero"
-
-typeof PlayState.idle === "enum"
-PlayState.idle.valueOf() === "idle"
-PlayState.idle.toString() === "idle"
+enum DaysOfTheWeek {
+  Sunday, // 0
+  Monday, // 1
+  Tuesday, // 2
+  // etc.
+}
 ```
 
-This representation allows multiple use cases:
-- [Strict inequality](#Operators): `Numbers.zero !== Colors.red`
-- [Bitwise operations](#Operators): `Numbers.one | Numbers.two`
-- [Math operations](#Operators): `let state = States.initial; state++;`
+Auto-initialization can be controlled through the use of an `of` clause:
 
-### Operators
-ECMAScript operators are supported through existing coercion behavior, with a few minor differences:
+```js
+enum DaysOfTheWeek of Symbol {
+  Sunday, // Symbol("Sunday")
+  Monday, // Symbol("Monday")
+  Tuesday, // Symbol("Tuesday")
+  // etc.
+}
+```
 
-- Strict equality (`===`) performs no coercion (no change).
-- Weak equality (`==`) performs coercion for enum values to their _underlying primitive type_.
-- Addition (`+`), Multiplication (`*`), and Binary Bitwise (`&`, `|`) operations perform coercion 
-  for enum values per the existing spec text, however if _both_ operands are enum values whose
-  _underlying primitive values_ are both `Number` and have the same _originating declaration_, the
-  result is coerced back into an enum value with that _originating declaration_.
-  ```js
-  Numbers.one + 2 === 3 // Coerces `Numbers.one` to Number.
-  Numbers.one | Numbers.two === Numbers.three; // Coerces both operands to Number, and the result back to `Numbers`.
-  ```
-- Update (`++`, `--`) and Bitwise NOT (`~`) operations coerce back to the operand's enum type if its _underlying 
-  primitive type_ is `Number`.
-- Bitwise Shift (`<<`, `>>`, `>>>`) operations coerce back to the _left_ operand's enum type if its _underlying
-  primitive type_ is `Number`.
-- Other operations not specified perform coercion as they are specified (no change). 
+Constructors for built-in primitive values like `String`, `Number`, `Symbol`, and `BigInt` are 
+defined to have a `@@toEnum` method that is used during evaluation to select an 
+auto-initialization value. If the expression in the `of` clause does not have a `@@toEnum` method,
+it will instead be called directly. This allows constructors for built-ins to be used in the `of`
+clause without adding a niche constructor overload. This also allows developers to control the 
+behavior of `of` if its expression is an ECMAScript `class` which cannot be called directly.
+
+### Evaluation
+
+Before we evaluate the _enum members_ of the declaration, we first choose a `mapper` Object. 
+If the enum declaration has an `of` clause, the `mapper` is the result of evaluating that clause.
+Otherwise, `mapper` uses the default value of %Number%.
+
+From the `mapper` we then get an `enumMap` function from `mapper[@@toEnum]`. If `enumMap` is
+`undefined`, then we set `enumMap` to `mapper` and `mapper` to `undefined`.
+
+To support auto-initialization we also define to variables (both initialized to `undefined`): 
+- `value`: Stores the result of the last explicit or automatic initialization.
+- `autoValue`: Stores the result of the last automatic initialization only.
+
+As we evaluate each _enum member_, we perform the following steps:
+
+1. Derive `key` from the _enum member_'s name.
+1. If the _enum member_ has an _Initializer_, 
+    1. Set `value` to be the result of evaluating _Initializer_.
+1. Else,
+    1. Set `autoValue` to be ? Call(`enumMap`, `mapper`, &laquos; `key`, `value`, `autoValue`)
+    1. Set `value` to be `autoValue`
+1. Add `key` to the List of member names in the \[\[EnumMembers]] internal slot of the 
+  _enum object_.
+1. Define a new property on the _enum object_ with the name `key` and the value `value`,
+  and the attributes `[[Writable]]`: **false**, `[[Configurable]]`: **false**, and
+  `[[Enumerable]]`: **true**.
+
+In addition, the following additional properties are added to _enum objects_:
+
+  - A `@@parseEnum` property whose value is a Function that returns the value of the _enum member_ 
+    whose name corresponds to the provided argument. 
+    - This member is \[\[Writable]]: `false`, \[\[Configurable]]: `true`, and 
+      \[\[Enumerable]]: `false`.
+  - A `@@formatEnum` property whose value is a Function that returns the name of the first 
+    _enum member_ whose value corresponds to the provided argument.
+    - This member is \[\[Writable]]: `false`, \[\[Configurable]]: `true`, and 
+      \[\[Enumerable]]: `false`.
+  - A `@@toStringTag` property whose value is `"Enum"`.
+    - This member is \[\[Writable]]: `false`, \[\[Configurable]]: `true`, and 
+      \[\[Enumerable]]: `false`.
+  - An `@@iterator` property whose value is a Function that returns an iterator for this enum's 
+    \[\[EnumMembers]] internal slot where each yielded value is a two-element array containing the 
+    enum member name at index 0 and the enum member value at index 1.
+    - This member is \[\[Writable]]: `false`, \[\[Configurable]]: `true`, and 
+      \[\[Enumerable]]: `false`.
+  
+Finally, the _enum object_ is made non-extensible.
 
 # API
 
-Enums have the following API:
+To make it easier to work with enums, an `Enum` object is added to the global scope, with the following
+methods:
+
+- `Enum.keys(E)` - Returns an `Iterator` for the member names in the \[\[EnumMembers]] internal 
+  slot of `E`.
+- `Enum.values(E)` - Returns an `Iterator` for the value on `E` of each member in the 
+  \[\[EnumMembers]] internal slot of `E`.
+- `Enum.entries(E)` - Returns an `Iterator` for each member in the \[\[EnumMembers]] internal
+  slot of `E`, where each result is two-element array containing the enum member name at index 0 
+  and the enum member value at index 1.
+- `Enum.has(E, key)` - Returns `true` if the the \[\[EnumMembers]] internal slot of `E` contains `key`.
+- `Enum.hasValue(E, value)` - Returns `true` if the \[\[EnumMembers]] internal slot of `E` contains a
+  member whose value on `E` corresponds to `value`.
+- `Enum.getName(E, value)` - Gets the first name in the \[\[EnumMembers]] internal slot of `E` whose
+  value on `E` corresponds to `value`.
+- `Enum.format(E, value)` - Calls the `@@formatEnum` method of `E` with argument `value`.
+- `Enum.parse(E, value)` - Calls the `@@parseEnum` method of `E` with argument `value`.
+- `Enum.create(members)` - Creates an _enum object_ using the property keys and values of `members`
+  as the _enum members_ for the new enum.
+- `Enum.flags(descriptor)` - A built-in decorator that modifies the _enum object_ in the following ways:
+  - The auto-increment behavior is changed to shift the current auto-increment value left by 1. 
+  - The `@@parseEnum` method is modified to parse a comma-separated string and OR the resulting values
+    together. If no corresponding name can be found and the name can be successfully coerced to a number,
+    that number is OR'ed with the result.
+  - The `@@formatEnum` method is modified to convert a bitwise combination of flag values into a comma
+    separated string of corresponding names. If no corresponding name can be found, the SV of the 
+    bits is appended to the string.
 
 ```ts
-type Enum = {
-  /** 
-   * Gets the string representation of the member name for this `enum` value. 
-   */
-  toString(): string;
-
-  /** 
-   * Gets the _underlying primitive value_ for this `enum` value. 
-   */
-  valueOf(): string | number | symbol | boolean;
-
-  /** 
-   * Gets the _underlying primitive value_ for this `enum` value. 
-   */
-  [Symbol.toPrimitive](hint: string): string | number | symbol | boolean;
-};
-
-type EnumConstructor = {
-  prototype: Enum;
-
-  /** 
-   * Coerce `value` into an `enum` value with this as its _originating declaration_. 
-   */
-  (value: string | number | symbol | boolean | Enum): Enum;
-
-  /** 
-   * Coerce `value` into an `enum` value with this as its _originating declaration_ and 
-   * returns that value as a boxed Object. 
-   */
-  new (value: string | number | symbol | boolean | Enum): Enum;
-
-  /** 
-   * Tests whether the provided value is explicitly declared on this enum. 
-   */
-  has(value: string | number | symbol | boolean | Enum): boolean;
-
-  /** 
-   * Tests whether the provided `enum` value has this enum as its _originating declaration_. 
-   */ 
-  is(value: Enum): boolean;
-
-  /** 
-   * Gets the defined `enum` value whose member name is the provided `name`. 
-   */
-  forName(name: string | symbol): Enum | undefined;
-
-  /** 
-   * Gets the defined `enum` value whose _underlying primitive value_ is the provided value. 
-   */
-  forValue(value: string | number | symbol | boolean | Enum): Enum | undefined;
-};
-
-/** 
- * Global object used to programmatically define and manipulate `enum` declarations. 
- */
 let Enum: {
-  /** 
-   * Creates a new `enum` programmatically, using the keys and values of `members` as the member 
-   * names and underlying primitive values. 
-   */
-  create(members: object): EnumConstructor;
-
-  /** 
-   * Adds a new member of an `enum`. 
-   * 
-   * Unlike `Object.defineProperty` this also defines membership for the purposes of 
-   * `%Enum%.has()` and `%Enum%.is()` 
-   */
-  addMember(F: EnumConstructor, key: string | symbol, 
-    value: string | number | symbol | boolean | Enum): EnumConstructor;
-
-  /** 
-   * Adds new members of an `enum`. 
-   *
-   * Unlike `Object.defineProperty` this also defines membership for the purposes of 
-   * `%Enum%.has()` and `%Enum%.is()`
-   */
-  addMembers(F: EnumConstructor, members: object): EnumConstructor;
-
-  /** 
-   * Iterates over all of the enum member names of the provided enum. 
-   */
-  memberNames(F: EnumConstructor): IterableIterator<string | symbol>;
-
-  /** 
-   * Iterates over all of the enum member values of the provided enum. 
-   */
-  memberValues(F: EnumConstructor): IterableIterator<Enum>;
-
-  /** 
-   * Iterates over all of the enum member names and values of the provided enum. 
-   */
-  members(F: EnumConstructor): IterableIterator<[string | symbol, Enum]>;
+  keys(E: object): IterableIterator<string | symbol>;
+  values(E: object): IterableIterator<any>;
+  entries(E: object): IterableIterator<[string | symbol, any]>;
+  has(E: object, key: string | symbol): boolean;
+  hasValue(E: object, value: any): boolean;
+  getName(E: object, value: any): string | undefined;
+  format(E: object, value: any): string | symbol | undefined;
+  parse(E: object, value: string): any;
+  create(members: object): object;
+  flags(descriptor: EnumDescriptor): EnumDescriptor;
 };
 ```
 
-<!-- # Grammar -->
-<!-- Grammar for the proposal. Please use grammarkdown (github.com/rbuckton/grammarkdown#readme) 
-     syntax in fenced code blocks as grammarkdown is the grammar format used by ecmarkup. -->
 <!--
+# Grammar
 
 ```grammarkdown
-EnumDeclaration[Yield, Await, Default] :
-  `enum` BindingIdentifier[?Yield, ?Await] EnumTail[?Yield, ?Await]
-  [+Default] `enum` EnumTail[?Yield, ?Await]
-
-EnumExpression[Yield, Await] :
-  `enum` BindingIdentifier[?Yield, ?Await]? EnumTail[?Yield, ?Await]
-
-EnumTail[Yield, Await] :
-  `{` EnumBody[?Yield, ?Await] `}`
-
-EnumBody[Yield, Await] :
-  EnumElementList[?Yield, ?Await]
-
-EnumElementList[Yield, Await] :
-  EnumElement[?Yield, ?Await]
-  EnumElementList[?Yield, ?Await] `,` EnumElement[?Yield, ?Await]
-
-EnumElement[Yield, Await] :
-  PropertyName[?Yield, ?Await] Initializer[+In, ?Yield, ?Await]?
-
-PrimaryExpression[Yield, Await] :
-  ...
-  EnumExpression[?Yield, ?Await]
-
-Declaration[Yield, Await] :
-  ...
-  EnumDeclaration[?Yield, ?Await]
-
-ExportDeclaration :
-  `export` `default` EnumDeclaration[~Yield, ~Await, +Default]
-  `export` `default` [lookahead ∉ { `function`, `async` [no LineTerminator here] `function`, `class`, `enum` }] AssignmentExpression[+In, ~Yield, ~Await];
 ```
 -->
 
@@ -317,86 +276,30 @@ ExportDeclaration :
 <!-- Examples of the proposal -->
 
 ```js
-enum Numbers {
-    zero,
-    one,
-    two,
-    three,
-}
+enum Numbers { zero, one, two, three, }
 
-// Enum values are a new primitive type:
-typeof Numbers.zero === "enum";
-
-// Enums have a default underlying type of Number...
-Numbers.zero.valueOf() === 0;
-Numbers.zero == 0;
-Numbers.zero !== 0; // ...but they are not numbers!
-
-// Enum values retain information about their declaration:
-Numbers.zero.toString() === "zero";
-
-// Subsequent enum values auto-increment if the preceding declaration was number-like:
-Numbers.zero.valueOf() === 0;
-Numbers.one.valueOf() === 1;
-Numbers.two.valueOf() === 2;
-
-// Enum members are [[Writable]: false, [[Enumerable]]: false, and [[Configurable]]: true:
-Numbers.zero = 1; // throws in strict mode, noop otherwise.
-Numbers.zero.valueOf() === 0;
-
-// operators involving enum values coerce the enum value to its underlying primitive value. If all 
-// operands have an underlying type of Number and come from the same enum declaration, the result 
-// of the operation is coerced back to the enum declaration:
-
-// enum + number -> number
-Numbers.one + 2 === 3;
-
-// enum + enum (same declaration) -> enum
-Numbers.one + Numbers.two === Numbers.three;
-
-// enum + enum (different declarations) -> number
-enum Colors { red, green, blue }
-Numbers.one + Colors.blue === 3;
-
-// You can coerce a number-like to an enum value through the enum's constructor:
-Numbers(0) === Numbers.zero;
-Numbers(1) === Numbers.one;
-
-// You can coerce a String to an enum value through the enum's constructor:
-Numbers("0") === Numbers.zero;
-Numbers("zero") === Numbers.zero;
-
-// You can override the underlying value through an initializer as long as the result is a 
-// primitive value, allowing enums for...
+typeof Numbers.zero === "number"
+Numbers.zero === 0
+Enum.getName(Numbers, 0) === "zero"
+Enum.parse(Numbers, "zero") === 0
 
 // ... strings, ...
-enum HttpMethods {
-    get = "GET",
-    put = "PUT",
-    post = "POST",
-    delete = "DELETE",
-}
-typeof HttpMethods.get === "enum";
-HttpMethods.get.toString() === "get";
-HttpMethods.get.valueOf() === "GET";
+enum HttpMethods of String { GET, PUT, POST, DELETE }
+
+typeof HttpMethods.GET === "string"
+HttpMethods.GET === "GET"
 
 // ... booleans, ...
-enum Switch {
-    on = true,
-    off = false,
-}
-typeof Switch.on === "enum";
-Switch.on.toString() === "on";
-Switch.on.valueOf() === true;
+enum Switch { on = true, off = false }
+
+typeof Switch.on === "boolean";
+Switch.on === true
 
 // ... symbols, ...
-enum Symbols {
-    alpha = Symbol.for("alpha"),
-    beta = Symbol()
-}
-typeof Symbols.alpha === "enum";
-Symbols.alpha.toString() === "alpha";
-Symbols.alpha.valueOf() === Symbol.for("alpha");
+enum AlphaBeta of Symbol { alpha, beta }
+
+typeof AlphaBeta.alpha === "symbol";
+AlphaBeta.alpha.toString() === "Symbol(AlphaBeta.alpha)";
 
 // ... or a mix.
 enum Mixed {
@@ -410,37 +313,26 @@ enum Mixed {
 export enum Zoo { lion, tiger, bear };
 export default enum { up, down, left, right };
 
-// All enum declaration constructors inherit from a built in %Enum% object with common 
-// static methods:
+// You can test for name membership using `Enum.has()`
+Enum.has(Numbers, "one") === true
+Enum.has(Numbers, "five") === false
 
-// You can test for membership using `%Enum%.has()`:
-Numbers.has(0) === true; // for underlying values
-Numbers.has("one") === true; // for enum member names
-Numbers.has(Numbers.two) === true; // for enum values
-Numbers.has(Numbers(9)) === false; // even though coerced
-Numbers.has(9) === false;
-Numbers.has(Color.blue) == false; // even though the underlying values are the same
+// You can test for value membership using `Enum.hasValue()`:
+Enum.hasValue(Numbers, 0) === true
+Enum.hasValue(Numbers, 9) === false
 
-// You can test for enum branding using `%Enum%.is()`:
-Numbers.is(0) === false;
-Numbers.is("one") === false;
-Numbers.is(Numbers.two) === true;
-Numbers.is(Numbers(9)) === true; // even though not defined
-Numbers.is(Color.blue) === false;
-
-// You can lookup an enum value by key or value using `%Enum%.forKey()` and 
-// `%Enum%.forValue()`, respectively:
-enum AlphaBeta {
+// You can convert enums between names and values using 
+// `Enum.parse` and `Enum.format`, respectively.
+enum AToB {
     a = "b",
     b = "a",
 }
 
-AlphaBeta.forKey("a") === AlphaBeta.a;
-AlphaBeta.forKey("b") === AlphaBeta.b;
-AlphaBeta.forValue("a") === AlphaBeta.b;
-AlphaBeta.forValue("b") === AlphaBeta.a;
+Enum.parse(AToB, "a") === AToB.a
+Enum.parse(AToB, "b") === AToB.b
 
-// There is a global `Enum` object with additional capabilities:
+Enum.getName(AToB, AToB.a) === "b"
+Enum.getName(AToB, AToB, b) === "a"
 
 // `Enum.create()` lets you create a new enum programmatically:
 const SyntaxKind = Enum.create({ 
@@ -449,39 +341,40 @@ const SyntaxKind = Enum.create({
   string: 2 
 });
 
-typeof SyntaxKind.identifier === "enum";
-SyntaxKind.identifier.toString() === "identifier";
-SyntaxKind.identifier.valueOf() === 0;
+typeof SyntaxKind.identifier === "number";
+SyntaxKind.identifier === 0;
 
-// `Enum.addMember()` and `Enum.addMembers()` let you extend an existing enum with new 
-// members (for monkeypatch support):
-Enum.addMember(HttpMethods, "patch", "PATCH");
-Enum.addMembers(Numbers, { "four": 4, "five": 5 });
 
-// You can get the names of all defined members using `Enum.memberNames()`:
-Enum.memberNames(Numbers); // ["zero", "one", "two", "three"]
-Enum.memberNames(HttpMethods); // ["get", "put", "post", "delete"]
+// The `Enum.flags` decorator lets you declare a enum containing 
+// bitwise flag values:
+@Enum.flags
+enum FileMode {
+  none
+  read,
+  write,
+  exclusive,
+  readWrite = read | write,
+}
 
-// You can get the values of all defined members using `Enum.memberValues()`:
-Enum.memberValues(Numbers); // [0, 1, 2, 3]
-Enum.memberValues(HttpMethods); // ["GET", "PUT", "POST", "DELETE"]
+FileMode.none === 0x0
+FileMode.readOnly === 0x1
+FileMode.readWrite === 0x3
 
-// You can get the entries of all defined members using `Enum.members()`:
-Enum.members(Numbers); // [["zero", 0], ["one", 1], ...]
-Enum.members(HttpMethods); // [["get", "GET"], ["put", "PUT"], ...]
+// `Enum.flags` modifies @@formatEnum:
+Enum.format(FileMode, FileMode.readWrite | FileMode.exclusive) === "readWrite, exclusive"
+
+// `EnumFlags` modifies @@parseEnum:
+Enum.parse(FileMode, "read, 4") === 5 // FileMode.read | FileMode.exclusive
 ```
 
 # Remarks
 
-- Why a new primitive type and the proposed strict equality semantics? 
+- Why default to Number?
   - In prior discussions, there are some preferences for the use of 
     [symbol values](https://esdiscuss.org/topic/propose-simpler-string-constant#content-8), 
     while there are other preferences that include the use of 
     [strings and numbers](https://esdiscuss.org/topic/propose-simpler-string-constant#content-14). 
-    This approach gives you the ability to support both scenarios through operand coercion 
-    and strict-equality semantics. These semantics can only be defined in terms of a new
-    primitive type.
-- Why default to Number?
+    This approach gives you the ability to support both scenarios through the optional `of` clause.
   - The auto-increment behavior of enums in other languages is used fairly regularly. Auto-
     increment is not viable if String or Symbol were the default type. 
   - We could consider switching on auto-increment if the prior declaration was initialized with a

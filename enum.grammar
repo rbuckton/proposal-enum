@@ -1,0 +1,42 @@
+// A.2 - Expressions
+
+EnumExpression[Yield, Await] :
+  DecoratorList[?Yield, ?Await]? `enum` BindingIdentifier[?Yield, ?Await]? EnumTail[?Yield, ?Await]
+
+PrimaryExpression[Yield, Await] :
+  <ins>EnumExpression[?Yield, ?Await]</ins>
+
+
+// A.3 - Statements
+
+EnumDeclaration[Yield, Await, Default, Decorators] :
+  `enum` BindingIdentifier[?Yield, ?Await] EnumTail[?Yield, ?Await]
+  [+Default] `enum` EnumTail[?Yield, ?Await]
+  [+Decorators] DecoratorList[?Yield, ?Await] `enum` BindingIdentifier[?Yield, ?Await] EnumTail[?Yield, ?Await]
+
+EnumTail[Yield, Await] :
+  EnumHeritage[?Yield, ?Await]? `{` EnumBody[?Yield, ?Await] `}`
+
+EnumHeritage[Yield, Await] :
+  `extends` LeftHandSideExpression[?Yield, ?Await]
+
+EnumBody[Yield, Await] :
+  EnumElementList[?Yield, ?Await]
+
+EnumElementList[Yield, Await] :
+  EnumElement[?Yield, ?Await]
+  EnumElementList[?Yield, ?Await] `,` EnumElement[?Yield, ?Await]
+
+EnumElement[Yield, Await] :
+  DecoratorList[?Yield, ?Await]? PropertyName[?Yield, ?Await] Initializer[+In, ?Yield, ?Await]?
+
+Declaration[Yield, Await, Decorators] :
+  <ins>EnumDeclaration[?Yield, ?Await, ?Decorators]</ins>
+
+
+// A.5 - Scripts and Modules
+
+ExportDeclaration :
+  <ins>DecoratorList[~Yield, ~Await] `export` EnumDeclaration[~Yield, ~Await, +Default, ~Decorators]</ins>
+  <ins>DecoratorList[~Yield, ~Await]? `export` `default` EnumDeclaration[~Yield, ~Await, +Default, ~Decorators]</ins>
+  `export` `default` [lookahead ∉ { `function`, `async` [no LineTerminator here] `function`, `class`, `@`, <ins>`enum`</ins> }] AssignmentExpression[+In, ~Yield, ~Await] `;`
