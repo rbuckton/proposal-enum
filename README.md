@@ -152,17 +152,17 @@ Otherwise, `mapper` uses the default value of %Number%.
 From the `mapper` we then get an `enumMap` function from `mapper[@@toEnum]`. If `enumMap` is
 `undefined`, then we set `enumMap` to `mapper` and `mapper` to `undefined`.
 
-To support auto-initialization we also define to variables (both initialized to `undefined`): 
+To support auto-initialization we also define two variables (both initialized to `undefined`): 
 - `value`: Stores the result of the last explicit or automatic initialization.
 - `autoValue`: Stores the result of the last automatic initialization only.
 
 As we evaluate each _enum member_, we perform the following steps:
 
 1. Derive `key` from the _enum member_'s name.
-1. If the _enum member_ has an _Initializer_, 
+1. If the _enum member_ has an _Initializer_, then
     1. Set `value` to be the result of evaluating _Initializer_.
 1. Else,
-    1. Set `autoValue` to be ? Call(`enumMap`, `mapper`, &laquos; `key`, `value`, `autoValue`)
+    1. Set `autoValue` to be ? Call(`enumMap`, `mapper`, &laquo; `key`, `value`, `autoValue` &raquo;)
     1. Set `value` to be `autoValue`
 1. Add `key` to the List of member names in the \[\[EnumMembers]] internal slot of the 
   _enum object_.
@@ -193,7 +193,7 @@ Finally, the _enum object_ is made non-extensible.
 
 ## Properties of the Number Constructor
 
-The Number constructor would have an additional @@toEnum method with parameters `key`, `value`, 
+The Number constructor would have an additional `@@toEnum` method with parameters `key`, `value`, 
 and `autoValue` that performs the following steps:
 
 1. If Type(`value`) is not Number, set `value` to `autoValue`.
@@ -202,7 +202,7 @@ and `autoValue` that performs the following steps:
 
 ## Properties of the String Constructor
 
-The String constructor would have an additional @@toEnum method with parameters `key`, `value`,
+The String constructor would have an additional `@@toEnum` method with parameters `key`, `value`,
 and `autoValue` that performs the following steps:
 
 1. Let `propKey` be ToPropertyKey(`key`).
@@ -211,7 +211,7 @@ and `autoValue` that performs the following steps:
 
 ## Properties of the Symbol Constructor
 
-The Symbol constructor would have an additional @@toEnum method that parameters `key`, `value`,
+The Symbol constructor would have an additional `@@toEnum` method that parameters `key`, `value`,
 and `autoValue` that performs the following steps:
 
 1. Let `propKey` be ToPropertyKey(`key`).
@@ -221,7 +221,7 @@ and `autoValue` that performs the following steps:
 
 ## Properties of the BigInt Constructor
 
-The BigInt constructor would have an additional @@toEnum method with parameters `key`, `value`,
+The BigInt constructor would have an additional `@@toEnum` method with parameters `key`, `value`,
 and `autoValue` that performs the following steps:
 
 1. If Type(`value`) is not BigInt, set `value` to `autoValue`.
