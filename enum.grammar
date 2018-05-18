@@ -15,13 +15,14 @@ EnumDeclaration[Yield, Await, Default, Decorators] :
   [+Decorators] DecoratorList[?Yield, ?Await] `enum` BindingIdentifier[?Yield, ?Await] EnumTail[?Yield, ?Await]
 
 EnumTail[Yield, Await] :
-  EnumHeritage[?Yield, ?Await]? `{` EnumBody[?Yield, ?Await] `}`
+  EnumOfClause[?Yield, ?Await]? `{` EnumBody[?Yield, ?Await] `}`
 
-EnumHeritage[Yield, Await] :
-  `extends` LeftHandSideExpression[?Yield, ?Await]
+EnumOfClause[Yield, Await] :
+  `of` LeftHandSideExpression[?Yield, ?Await]
 
 EnumBody[Yield, Await] :
   EnumElementList[?Yield, ?Await]
+  EnumElementList[?Yield, ?Await] `,`
 
 EnumElementList[Yield, Await] :
   EnumElement[?Yield, ?Await]
