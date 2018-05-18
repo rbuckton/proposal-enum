@@ -104,34 +104,6 @@ This proposal introduces three new well-known symbols that are used with enums:
 | @@formatEnum | `"Symbol.formatEnum"` | A method of an _enum object_ that is used to convert a value into a string representation based on the member names of the enum. Called by `Enum.format`. |
 | @@parseEnum | `"Symbol.parseEnum"` | A method of an _enum object_ that is used to convert a member name String into the value represented by that member of the enum. Called by `Enum.parse`. |
 
-## Properties of the Number Constructor
-
-The Number constructor would have an additional @@toEnum method with parameters `key`, `value`, 
-and `autoValue` that performs the following steps:
-
-1. If Type(`value`) is not Number, set `value` to `autoValue`.
-1. If `value` is `undefined`, return `0`.
-1. Return `value + 1`.
-
-## Properties of the String Constructor
-
-The String constructor would have an additional @@toEnum method with parameters `key`, `value`,
-and `autoValue` that returns a string derived from `key`.
-
-## Properties of the Symbol Constructor
-
-The Symbol constructor would have an additional @@toEnum method that parameters `key`, `value`,
-and `autoValue` that returns a symbol derived from `key`.
-
-## Properties of the BigInt Constructor
-
-The BigInt constructor would have an additional @@toEnum method with parameters `key`, `value`,
-and `autoValue` that performs the following steps:
-
-1. If Type(`value`) is not BigInt, set `value` to `autoValue`.
-1. If `value` is `undefined`, return `0n`.
-1. Return `value + 1n`.
-
 ## Enum Declarations
 
 Enum declarations consist of a finite set of _enum members_ that define the names and values
@@ -218,6 +190,43 @@ In addition, the following additional properties are added to _enum objects_:
       \[\[Enumerable]]: `false`.
   
 Finally, the _enum object_ is made non-extensible.
+
+## Properties of the Number Constructor
+
+The Number constructor would have an additional @@toEnum method with parameters `key`, `value`, 
+and `autoValue` that performs the following steps:
+
+1. If Type(`value`) is not Number, set `value` to `autoValue`.
+1. If `value` is `undefined`, return `0`.
+1. Otherwise, return `value + 1`.
+
+## Properties of the String Constructor
+
+The String constructor would have an additional @@toEnum method with parameters `key`, `value`,
+and `autoValue` that performs the following steps:
+
+1. Let `propKey` be ToPropertyKey(`key`).
+1. If Type(`propKey`) is Symbol, return `propKey`.\[\[Description]].
+1. Otherwise, return `propKey`.
+
+## Properties of the Symbol Constructor
+
+The Symbol constructor would have an additional @@toEnum method that parameters `key`, `value`,
+and `autoValue` that performs the following steps:
+
+1. Let `propKey` be ToPropertyKey(`key`).
+1. If Type(`propKey`) is Symbol, let `description` be `propKey`.\[\[Description]].
+1. Otherwise, let `description` be `propKey`.
+1. Return a new unique Symbol whose \[\[Description]] value is `description`.
+
+## Properties of the BigInt Constructor
+
+The BigInt constructor would have an additional @@toEnum method with parameters `key`, `value`,
+and `autoValue` that performs the following steps:
+
+1. If Type(`value`) is not BigInt, set `value` to `autoValue`.
+1. If `value` is `undefined`, return `0n`.
+1. Otherwise, return `value + 1n`.
 
 # API
 
