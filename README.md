@@ -5,6 +5,8 @@ A common and oft-used feature of many languages is the concept of an
 domain of constant values that are regularly used to indicate choices, discriminants, and bitwise
 flags.
 
+* [Stage 0 Presentation](https://docs.google.com/presentation/d/1QQeogZ_GqCacKytUA7JMSZmiR5s2Cr4P8KGjGYzzHw0/edit?usp=sharing)
+
 ## Status
 
 **Stage:** 0  
