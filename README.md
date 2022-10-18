@@ -51,75 +51,116 @@ some kind of discriminant:
 
 # Syntax
 
-```ts
-// enum declarations
+## Enum Declarations
 
-// Each auto-initialized member value is a `Number`, auto-increments values by 1 starting at 0
-enum Numbers {
-  zero,
-  one,
-  two,
-  three,
-  alsoThree = three
+```ts
+// Enum Declarations
+
+// Enum without `of` clause requires explicit initializers.
+enum Explicit {
+  zero = 0,
+  abc = "ABC",
+  sym = Symbol(),
 }
 
-// Each auto-initialized member value is a `Number`, auto-increments values by 1 starting at 0
+// Enum member names can be valid property names:
+enum Named {
+  identifierName = 0,
+  "string name" = 1,
+  [expr] = 2,
+}
+
+// `of` clause:
+
+// Each auto-initialized member value is a `Number`, auto-increments values by 1 starting at 0.
 enum Colors of Number {
   red,
   green,
-  blue
+  blue,
 }
 
 // Each auto-initialized member value is a `String` whose value is the SV of its member name.
 enum PlayState of String {
   idle,
   running,
-  paused
+  paused,
 }
 
 // Each auto-initialized member value is a `Symbol` whose description is the SV of its member name.
 enum Symbols of Symbol {
   alpha,
-  beta
+  beta,
 }
 
-enum Named {
-  identifierName,
-  "string name",
-  [expr]
+// A special `Enum.ADT` mapper exists that can be used to define algebraic data types:
+enum Message of Enum.ADT {
+  Move{x, y},
+  Write(text),
+  Quit
 }
 
-// Accessing enum values:
-let x = Color.red;
-let y = Named["string name"];
+// ADT enum construction
+const m1 = Message.Move{x: 10, y: 20};
+const m2 = Message.Write("hello world");
+
+// ADT enum deconstruction via extractors
+const Message.Move{x, y} = m1;
+const Message.Write(text) = m2;
+
+// ADT enum pattern matching
+match (m1) {
+  when Message.Move{x: let x, y: let y}: ...,
+  when Message.Write(let text): ...,
+  when Message.Quit: ...;
+}
+```
+
+## Object Literal-like Construction
+
+ADT enums support an object literal-like construction syntax:
+
+```js
+const msg = Message.Move{ x: 10, y: 20 };
 ```
 
 # Semantics
 
 ## Well-Known Symbols
 
-This proposal introduces three new well-known symbols that are used with enums:
+This proposal introduces four new well-known symbols that are used with enums:
 
-| Specification Name | \[\[Description]] | Value and Purpose |
-|:-|:-|:-|
-| @@toEnum | `"Symbol.toEnum"` | A method that is used to derive the value for an enum member during _EnumMember_ evaluation. |
-| @@formatEnum | `"Symbol.formatEnum"` | A method of an _enum object_ that is used to convert a value into a string representation based on the member names of the enum. Called by `Enum.format`. |
-| @@parseEnum | `"Symbol.parseEnum"` | A method of an _enum object_ that is used to convert a member name String into the value represented by that member of the enum. Called by `Enum.parse`. |
+| Specification Name  | \[\[Description]]            | Value and Purpose |
+|:--------------------|:-----------------------------|:------------------|
+| @@toEnum            | `"Symbol.toEnum"`            | A method that is used to derive the value for an enum member during _EnumMember_ evaluation. |
+| @@formatEnum        | `"Symbol.formatEnum"`        | A method of an _enum object_ that is used to convert a value into a string representation based on the member names of the enum. Called by `Enum.format`. |
+| @@parseEnum         | `"Symbol.parseEnum"`         | A method of an _enum object_ that is used to convert a member name String into the value represented by that member of the enum. Called by `Enum.parse`. |
+| @@propertyConstruct | `"Symbol.propertyConstruct"` | A method of an ADT _enum member_ that is used to construct an ADT record-like enum value using object literal-like syntax. |
 
 ## Enum Declarations
 
-Enum declarations consist of a finite set of _enum members_ that define the names and values
-for each member of the enum. These results are stored as properties of an _enum object_. An 
-_enum object_ is an ordinary object with an \[\[EnumMembers]] internal slot, and whose 
-\[\[Prototype]] is `null`.
+Enum declarations consist of a finite set of _enum members_ that define the names and values for each member of the
+enum. These results are stored as properties of an _enum object_. An  _enum object_ is an ordinary object with an
+\[\[EnumMembers]] internal slot, and whose \[\[Prototype]] is `null`.
 
-### Automatic Initialization
+### Initializers
 
-If an _enum member_ does not supply an _Initializer_, the value of that _enum member_ will be 
-automatically initialized:
+By default, _enum members_ must have explicit initializers:
 
 ```js
 enum DaysOfTheWeek {
+  Sunday = 0,
+  Monday = 1,
+  Tuesday, // error
+}
+```
+
+### Automatic Initialization
+
+Automatic initialization is supported by way of an _Enum Mapper Object_ provided via an `of` clause:
+
+```js
+// Number-based enum with auto-increment
+enum DaysOfTheWeek of Number {
   Sunday, // 0
   Monday, // 1
   Tuesday, // 2
@@ -127,9 +168,8 @@ enum DaysOfTheWeek {
 }
 ```
 
-Auto-initialization can be controlled through the use of an `of` clause:
-
 ```js
+// Symbol-based enum
 enum DaysOfTheWeek of Symbol {
   Sunday, // Symbol("Sunday")
   Monday, // Symbol("Monday")
@@ -138,12 +178,26 @@ enum DaysOfTheWeek of Symbol {
 }
 ```
 
-Constructors for built-in primitive values like `String`, `Number`, `Symbol`, and `BigInt` are 
-defined to have a `@@toEnum` method that is used during evaluation to select an 
-auto-initialization value. If the expression in the `of` clause does not have a `@@toEnum` method,
-it will instead be called directly. This allows constructors for built-ins to be used in the `of`
-clause without adding a niche constructor overload. This also allows developers to control the 
+Constructors for built-in primitive values like `String`, `Number`, `Symbol`, and `BigInt` are defined to have a
+`@@toEnum` method that is used during evaluation to select an auto-initialization value. If the expression in the `of`
+clause does not have a `@@toEnum` method, it will instead be called directly. This allows constructors for built-ins to
+be used in the `of` clause without adding a niche constructor overload. This also allows developers to control the
 behavior of `of` if its expression is an ECMAScript `class` which cannot be called directly.
+
+### Algebraic Data Types
+
+Enums can be used to define Algebraic Data types via the `Enum.ADT` enum mapper object:
+
+```js
+enum Message of Enum.ADT {
+  Move{ x, y },
+  Write(text),
+  Quit,
+}
+```
+
+The `Enum.ADT` has a specialized `@@toEnum` method that interprets the ADT syntax and produces the respective enum
+member or member factory.
 
 ### Evaluation
 
@@ -154,18 +208,30 @@ Otherwise, `mapper` uses the default value of %Number%.
 From the `mapper` we then get an `enumMap` function from `mapper[@@toEnum]`. If `enumMap` is
 `undefined`, then we set `enumMap` to `mapper` and `mapper` to `undefined`.
 
-To support auto-initialization we also define two variables (both initialized to `undefined`): 
+To support auto-initialization we also define two variables (both initialized to **undefined**): 
 - `value`: Stores the result of the last explicit or automatic initialization.
 - `autoValue`: Stores the result of the last automatic initialization only.
 
 As we evaluate each _enum member_, we perform the following steps:
 
 1. Derive `key` from the _enum member_'s name.
-1. If the _enum member_ has an _Initializer_, then
-    1. Set `value` to be the result of evaluating _Initializer_.
+1. If the _enum member_ has an _AgebraicDataTypeParameterList_ (i.e., `(a, b, c)`), then:
+    1. Let `options` be a new Object.
+    1. Set `options.kind` to `"tuple"`.
+    1. Set `options.elements` to an Array whose elements are the parameter names of _AgebraicDataTypeParameterList_.
+    1. Set `autoValue` to ? Call(`enumMap`, `mapper`, &laquo; `key`, `value`, **undefined**, `options` &raquo;)
+    1. Set `value` to `autoValue`
+1. Else, If the _enum member_ has an _AgebraicDataTypePropertyList_ (i.e., `{a, b, c}`), then:
+    1. Let `options` be a new Object.
+    1. Set `options.kind` to `"record"`.
+    1. Set `options.elements` to an Array whose elements are the property names of _AgebraicDataTypePropertyList_.
+    1. Set `autoValue` to ? Call(`enumMap`, `mapper`, &laquo; `key`, `value`, **undefined**, `options` &raquo;)
+    1. Set `value` to `autoValue`
+1. Else, If the _enum member_ has an _Initializer_, then
+    1. Set `value` to the result of evaluating _Initializer_.
 1. Else,
-    1. Set `autoValue` to be ? Call(`enumMap`, `mapper`, &laquo; `key`, `value`, `autoValue` &raquo;)
-    1. Set `value` to be `autoValue`
+    1. Set `autoValue` to ? Call(`enumMap`, `mapper`, &laquo; `key`, `value`, `autoValue` &raquo;)
+    1. Set `value` to `autoValue`
 1. Add `key` to the List of member names in the \[\[EnumMembers]] internal slot of the 
   _enum object_.
 1. Define a new property on the _enum object_ with the name `key` and the value `value`,
@@ -230,6 +296,26 @@ and `autoValue` that performs the following steps:
 1. If `value` is `undefined`, return `0n`.
 1. Otherwise, return `value + 1n`.
 
+## ADT Enum Member Factories
+
+An ADT enum member can produce an enum member factory, which is either a `function` (in the case of `enum E { X(y) }`),
+or an `object` with a `@@propertyConstruct` property (in the case of `enum E { X{ y } }`).
+
+## Object Literal-like Construction Syntax
+
+This is intended to dovetail with the [Extractors proposal](https://github.com/tc39/proposal-extractors), and uses the
+@@propertyConstruct built-in symbol. The following syntax:
+
+```js
+const msg = Message.Move{ x, y };
+```
+
+is transposed the following representation:
+
+```js
+const msg = Message.Move[Symbol.propertyConstruct](#{ x, y });
+```
+
 # API
 
 To make it easier to work with enums, an `Enum` object is added to the global scope, with the following
@@ -251,7 +337,8 @@ methods:
 - `Enum.parse(E, value)` - Calls the `@@parseEnum` method of `E` with argument `value`.
 - `Enum.create(members)` - Creates an _enum object_ using the property keys and values of `members`
   as the _enum members_ for the new enum.
-- `Enum.flags(descriptor)` - A built-in decorator that modifies the _enum object_ in the following ways:
+- `Enum.NumberFlags(key, value, autoValue)` - An enum mapper function that is similar to `Number[@@toEnum]`, but with
+  the following changes:
   - The auto-increment behavior is changed to shift the current auto-increment value left by 1. 
   - The `@@parseEnum` method is modified to parse a comma-separated string and OR the resulting values
     together. If no corresponding name can be found and the name can be successfully coerced to a number,
@@ -259,6 +346,17 @@ methods:
   - The `@@formatEnum` method is modified to convert a bitwise combination of flag values into a comma
     separated string of corresponding names. If no corresponding name can be found, the SV of the 
     bits is appended to the string.
+- `Enum.BigIntFlags(key, value, autoValue)` - An enum mapper function that is similar to `BigInt[@@toEnum]`, but with
+  the following changes:
+  - The auto-increment behavior is changed to shift the current auto-increment value left by `1n`. 
+  - The `@@parseEnum` method is modified to parse a comma-separated string and OR the resulting values
+    together. If no corresponding name can be found and the name can be successfully coerced to a BigInt,
+    that `BigInt` is OR'ed with the result.
+  - The `@@formatEnum` method is modified to convert a bitwise combination of flag values into a comma
+    separated string of corresponding names. If no corresponding name can be found, the SV of the
+    bits is appended to the string.
+- `Enum.ADT(key, value, autoValue, options)` - An enum mapper function that produces a unique enum member factory
+  based on `key` and `options`.
 
 ```ts
 let Enum: {
@@ -271,7 +369,9 @@ let Enum: {
   format(E: object, value: any): string | symbol | undefined;
   parse(E: object, value: string): any;
   create(members: object): object;
-  flags(descriptor: EnumDescriptor): EnumDescriptor;
+  NumberFlags(key: string | symbol, value: any, autoValue: number | undefined): any;
+  BigIntFlags(key: string | symbol, value: any, autoValue: number | undefined): any;
+  ADT(key: string | symbol, value: any, autoValue: any, options?: { kind: "record" | "tuple", elements: string[] }): any;
 };
 ```
 
@@ -286,31 +386,53 @@ let Enum: {
 
 <!-- Examples of the proposal -->
 
+## Number Enums
 ```js
-enum Numbers { zero, one, two, three, }
+enum Numbers of Number {
+  zero,
+  one,
+  two,
+  three,
+}
 
+// usage
 typeof Numbers.zero === "number"
 Numbers.zero === 0
 Enum.getName(Numbers, 0) === "zero"
 Enum.parse(Numbers, "zero") === 0
+```
 
-// ... strings, ...
-enum HttpMethods of String { GET, PUT, POST, DELETE }
+## String Enums
+```js
+enum HttpMethods of String {
+  GET,
+  PUT,
+  POST,
+  DELETE,
+}
 
 typeof HttpMethods.GET === "string"
 HttpMethods.GET === "GET"
+```
 
-// ... booleans, ...
-enum Switch { on = true, off = false }
-
-typeof Switch.on === "boolean";
-Switch.on === true
-
+## Symbol Enums
+```js
 // ... symbols, ...
 enum AlphaBeta of Symbol { alpha, beta }
 
 typeof AlphaBeta.alpha === "symbol";
 AlphaBeta.alpha.toString() === "Symbol(AlphaBeta.alpha)";
+```
+
+## Explicit Enums
+```js
+enum Switch {
+  on = true,
+  off = false,
+}
+
+typeof Switch.on === "boolean";
+Switch.on === true
 
 // ... or a mix.
 enum Mixed {
@@ -319,11 +441,16 @@ enum Mixed {
     boolean = false,
     symbol = Symbol()
 }
+```
 
-// Enums can be exported:
-export enum Zoo { lion, tiger, bear };
-export default enum { up, down, left, right };
+## Exporting Enums
+```js
+export enum Zoo of String { lion, tiger, bear };
+export default enum of String { up, down, left, right };
+```
 
+## Enum API
+```js
 // You can test for name membership using `Enum.has()`
 Enum.has(Numbers, "one") === true
 Enum.has(Numbers, "five") === false
@@ -355,37 +482,56 @@ const SyntaxKind = Enum.create({
 typeof SyntaxKind.identifier === "number";
 SyntaxKind.identifier === 0;
 
-
-// The `Enum.flags` decorator lets you declare a enum containing 
-// bitwise flag values:
-@Enum.flags
-enum FileMode {
-  none
-  read,
-  write,
-  exclusive,
+// `Enum.NumberFlags` lets you declare a enum containing bitwise flag values:
+enum FileMode of Enum.NumberFlags {
+  none,       // 0x0
+  read,       // 0x1
+  write,      // 0x2
+  exclusive,  // 0x4
   readWrite = read | write,
 }
 
 FileMode.none === 0x0
-FileMode.readOnly === 0x1
+FileMode.read === 0x1
 FileMode.readWrite === 0x3
 
-// `Enum.flags` modifies @@formatEnum:
+// `Enum.NumberFlags` modifies @@formatEnum:
 Enum.format(FileMode, FileMode.readWrite | FileMode.exclusive) === "readWrite, exclusive"
 
-// `EnumFlags` modifies @@parseEnum:
+// `Enum.NumberFlags` modifies @@parseEnum:
 Enum.parse(FileMode, "read, 4") === 5 // FileMode.read | FileMode.exclusive
+```
+
+## ADT Enums
+
+```js
+enum Option of Enum.ADT {
+  Some(value),
+  None
+}
+
+const opt1 = Option.Some(1);
+const opt2 = Option.None;
+
+enum Message of Enum.ADT {
+  Move{x, y},
+  Write(text),
+  Quit
+}
+
+const msg1 = Message.Move{ x: 10, y: 20 };
+const msg2 = Message.Write("hello world");
+const msg3 = Message.Quit;
 ```
 
 # Remarks
 
-- Why default to Number?
+- Why require explicit initializers when `of` clause is missing?
   - In prior discussions, there are some preferences for the use of 
     [symbol values](https://esdiscuss.org/topic/propose-simpler-string-constant#content-8), 
     while there are other preferences that include the use of 
     [strings and numbers](https://esdiscuss.org/topic/propose-simpler-string-constant#content-14). 
-    This approach gives you the ability to support both scenarios through the optional `of` clause.
+    This approach gives you the ability to support both scenarios through the `of` clause.
   - The auto-increment behavior of enums in other languages is used fairly regularly. Auto-
     increment is not viable if String or Symbol were the default type. 
   - We could consider switching on auto-increment if the prior declaration was initialized with a
@@ -398,6 +544,9 @@ Enum.parse(FileMode, "read, 4") === 5 // FileMode.read | FileMode.exclusive
       third // ...is this a Symbol or the Number `2`?
     }
     ```
+  - TypeScript and Flow both support enums but differ in the default behavior for uninitialized members. Requiring
+    explicit initializers for the default `enum` declaration provides a better compatiblity and interoperability with
+    such languages that extend ECMAScript syntax.
 
 # TODO
 
