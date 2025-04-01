@@ -126,7 +126,7 @@ for each member of the enum. These results are stored as properties of an _enum 
 _enum object_ is an ordinary object whose \[\[Prototype]] is `null`. Each enum member defines
 a property on the _enum object_.
 
-In addition, an _enum object_ contains an `@@iterator` method that yields a `[key, value]` entry for each declard enum
+In addition, an _enum object_ contains an `@@iterator` method that yields a `[key, value]` entry for each declared enum
 member, in document order. To explain the semantics of the `@@iterator` method, an _enum object_ may require an
 \[\[EnumMembers]] internal slot.
 
