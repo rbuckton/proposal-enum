@@ -7,7 +7,7 @@ popular and heavily used feature of TypeScript, this proposal seeks the adoption
 knowledge of the TypeScript development team and represents either a change that TypeScript is willing to adopt, or
 represents a limited subset of functionality that TypeScript expands upon.
 
-> NOTE: This proposal has been heavily reworked from it's prior incarnation, which can now be found at
+> NOTE: This proposal has been heavily reworked from its prior incarnation, which can now be found at
 > https://github.com/rbuckton/proposal-enum/tree/old
 
 ## Status
