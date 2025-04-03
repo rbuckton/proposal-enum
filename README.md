@@ -240,10 +240,13 @@ enum Numbers {
 }
 ```
 
-However, this behavior is contentious amongst some TC39 delegates and has been removed from this proposal. TypeScript
-will continue to support auto-initialization due to its frequent use within the developer community, but would emit
-explicit initializers to JavaScript. It is possible that another form of auto-initialization may be introduced in the
-future that could be utilized by both TypeScript and ECMAScript. For more information, please refer to the
+However, this behavior is contentious amongst some TC39 delegates and has been removed from this proposal. The main
+concern that has been raised is that introducing new auto-initialized enum members in the middle of an existing enum
+has the potential to be a versioning issue in packages, and that such behavior should be harder to reach for, as opposed
+to being the default behavior. However, even if this capability is not supported, TypeScript will continue to support
+auto-initialization due to its frequent use within the developer community, but would emit explicit initializers to
+JavaScript. It is possible that another form of auto-initialization may be introduced in the future that could be
+utilized by both TypeScript and ECMAScript. For more information, please refer to the 
 [Auto-Initializers](#auto-initializers-1) topic in the [Future Directions](#future-directions) section.
 
 
