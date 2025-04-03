@@ -108,7 +108,7 @@ enum Named {
 let x = Numbers.three;
 let y = Named["string name"];
 
-// Reverse mapping (formatting, debugging, diagnostics, etc):
+// Iteration, replaces TypeScript enum "Reverse mapping" (formatting, debugging, diagnostics, etc):
 for (const [key, value] of Numbers) ...
 ```
 
@@ -193,7 +193,7 @@ let E = (() => {
   Object.defineProperty(E, Symbol.toStringTag, { value: "E" });
   Object.preventExtensions(E);
   return E;
-})
+})();
 ```
 
 # Other Considerations
@@ -241,9 +241,11 @@ enum Numbers {
 ```
 
 However, this behavior is contentious amongst some TC39 delegates and has been removed from this proposal. TypeScript
-will continue to support auto-initializiation due to its frequent use within the developer community, but would emit
-explicit initializers to JavaScript. It is possible that another form of auto-initializiation may be introduced in the
-future that could be utilized by both TypeScript and ECMAScript.
+will continue to support auto-initialization due to its frequent use within the developer community, but would emit
+explicit initializers to JavaScript. It is possible that another form of auto-initialization may be introduced in the
+future that could be utilized by both TypeScript and ECMAScript. For more information, please refer to the
+[Auto-Initializers](#auto-initializers-1) topic in the [Future Directions](#future-directions) section.
+
 
 ## Declaration Merging
 
@@ -259,8 +261,8 @@ TypeScript currently supports reverse-mapping enum values back to enum member na
 overwrite other members. While this information is invaluable for debugging, diagnostics, formatting, and serialization,
 it is far less frequently used compared to `enum` on the whole.
 
-To avoid this inconsistency, we propose instead propose introducing reverse mapping by way of the `@@iterator` built-in
-symbol:
+To avoid this inconsistency, we instead propose using iteration (by way of the `@@iterator` built-in
+symbol) to cover the "reverse mapping" case:
 
 ```js
 enum E {
@@ -275,6 +277,9 @@ for (const [key, value] of E) {
 // prints:
 //  A: 0
 //  B: A
+
+const keyForA = E[Symbol.iterator]().find(([, value]) => value === "A")[0]
+console.log(keyForA); // prints: B
 ```
 
 If adopted, TypeScript would add support for `@@iterator` while eventually deprecating existing reverse mapping support.
@@ -283,8 +288,10 @@ If adopted, TypeScript would add support for `@@iterator` while eventually depre
 ## `const enum`
 
 TypeScript supports the concept of a `const enum` declaration, which is similar to a normal `enum` declaration except
-that enum values are inlined into their use sites. As this capability requires whole program knowledge, it is not a
-feature we intend to support in ECMAScript enums.
+that enum values are inlined into their use sites. Implementations are free to optimize as they see fit, and it's
+entirely reasonable that an implementation may eventually support similar inlining on a normal `enum` declaration. As
+the current `const enum` requires whole program knowlege and a type system, we believe it should remain a
+TypeScript-specific capability at this time.
 
 
 ## `Symbol` values
