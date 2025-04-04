@@ -183,7 +183,7 @@ let E = (() => {
   let E = Object.create(null), A, B, C;
   Object.defineProperty(E, "A", { value: A = 1 });
   Object.defineProperty(E, "B", { value: B = 2 });
-  Object.defineProperty(E, "C", { value: C = A | E.A });
+  Object.defineProperty(E, "C", { value: C = A | E.B });
   Object.defineProperty(E, Symbol.iterator, {
     value: function* () {
       yield ["A", E.A];
