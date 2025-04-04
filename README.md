@@ -108,7 +108,8 @@ enum Named {
 let x = Numbers.three;
 let y = Named["string name"];
 
-// Iteration, replaces TypeScript enum "Reverse mapping" (formatting, debugging, diagnostics, etc):
+// Iteration, replaces TypeScript enum "Reverse mapping" (formatting,
+// debugging, diagnostics, etc):
 for (const [key, value] of Numbers) ...
 ```
 
@@ -371,7 +372,7 @@ declarations to support serialization/deserialization, formatting, and FFI scena
 enum Role {
   @Alias(["user", "person"], { ignoreCase: true })
   user = 1,
-  @Alias(["admin", "administrator"], { ignoreCase true })
+  @Alias(["admin", "administrator"], { ignoreCase: true })
   admin = 2,
 }
 ```
