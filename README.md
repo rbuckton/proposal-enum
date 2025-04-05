@@ -350,7 +350,7 @@ enum Result {
 
 function try_(cb) {
   try {
-    return Result.Ok(_cb());
+    return Result.Ok(cb());
   } catch (e) {
     return Result.Error(e);
   }
