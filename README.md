@@ -127,8 +127,8 @@ for each member of the enum. These results are stored as properties of an _enum 
 _enum object_ is an ordinary object whose \[\[Prototype]] is `null`. Each enum member defines
 a property on the _enum object_.
 
-In addition, an _enum object_ contains an `@@iterator` method that yields a `[key, value]` entry for each declared enum
-member, in document order. To explain the semantics of the `@@iterator` method, an _enum object_ may require an
+In addition, an _enum object_ contains a `Symbol.iterator` method that yields a `[key, value]` entry for each declared enum
+member, in document order. To explain the semantics of the `Symbol.iterator` method, an _enum object_ may require an
 \[\[EnumMembers]] internal slot.
 
 
@@ -165,7 +165,7 @@ itself (much like a `class`).
 
 Aside from the `enum` declaration itself, there is no other proposed API.
 
-An `enum` declaration will have an `@@iterator` method that can be used to iterate over the key/value pairs of the enum's
+An `enum` declaration will have a `Symbol.iterator` method that can be used to iterate over the key/value pairs of the enum's
 members.
 
 # Desugaring
@@ -265,7 +265,7 @@ TypeScript currently supports reverse-mapping enum values back to enum member na
 overwrite other members. While this information is invaluable for debugging, diagnostics, formatting, and serialization,
 it is far less frequently used compared to `enum` on the whole.
 
-To avoid this inconsistency, we instead propose using iteration (by way of the `@@iterator` built-in
+To avoid this inconsistency, we instead propose using iteration (by way of the `Symbol.iterator` built-in
 symbol) to cover the "reverse mapping" case:
 
 ```js
@@ -286,7 +286,7 @@ const keyForA = E[Symbol.iterator]().find(([, value]) => value === "A")[0]
 console.log(keyForA); // prints: B
 ```
 
-If adopted, TypeScript would add support for `@@iterator` while eventually deprecating existing reverse mapping support.
+If adopted, TypeScript would add support for `Symbol.iterator` while eventually deprecating existing reverse mapping support.
 
 
 ## `const enum`
@@ -392,7 +392,7 @@ printGeom(l); // Line(Point({ x: 0, y: 1 }), Point({ x: 2, y: 3 }))
 ```
 
 ADT enum members may also need a mechanism to implement prototypal or static methods on the `enum`, which is one
-reason why we prefer `@@iterator` to describe the domain of an `enum` vs. something like `Object.entries()`.
+reason why we prefer `Symbol.iterator` to describe the domain of an `enum` vs. something like `Object.entries()`.
 
 ## Decorators
 
