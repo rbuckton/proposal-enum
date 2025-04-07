@@ -56,7 +56,7 @@ An `enum` declaration provides several advantages over an object literal:
   subsequent enum member.
 - Static Typing (tooling) &mdash; Static type systems like TypeScript use enum declarations to discriminate types,
   provide documentation in hovers, etc.
-- ADT (future) &mdash; Potential future support for Algebraic Data Types.
+- ADT enums (future) &mdash; Potential future support for Algebraic Data Type enums (i.e., "discriminated unions").
 - Decorators (future) &mdash; Potential future support for `enum`-specific Decorators.
 - Auto-Initializers (future) &mdash; Potential future support for auto-initialized enum members.
 - "shared" enums (future) &mdash; Potential future support for a `shared enum` with restrictions on inputs to align with
@@ -127,8 +127,8 @@ for each member of the enum. These results are stored as properties of an _enum 
 _enum object_ is an ordinary object whose \[\[Prototype]] is `null`. Each enum member defines
 a property on the _enum object_.
 
-In addition, an _enum object_ contains an `@@iterator` method that yields a `[key, value]` entry for each declared enum
-member, in document order. To explain the semantics of the `@@iterator` method, an _enum object_ may require an
+In addition, an _enum object_ contains a `Symbol.iterator` method that yields a `[key, value]` entry for each declared enum
+member, in document order. To explain the semantics of the `Symbol.iterator` method, an _enum object_ may require an
 \[\[EnumMembers]] internal slot.
 
 
@@ -165,7 +165,7 @@ itself (much like a `class`).
 
 Aside from the `enum` declaration itself, there is no other proposed API.
 
-An `enum` declaration will have an `@@iterator` method that can be used to iterate over the key/value pairs of the enum's
+An `enum` declaration will have a `Symbol.iterator` method that can be used to iterate over the key/value pairs of the enum's
 members.
 
 # Desugaring
@@ -265,7 +265,7 @@ TypeScript currently supports reverse-mapping enum values back to enum member na
 overwrite other members. While this information is invaluable for debugging, diagnostics, formatting, and serialization,
 it is far less frequently used compared to `enum` on the whole.
 
-To avoid this inconsistency, we instead propose using iteration (by way of the `@@iterator` built-in
+To avoid this inconsistency, we instead propose using iteration (by way of the `Symbol.iterator` built-in
 symbol) to cover the "reverse mapping" case:
 
 ```js
@@ -286,7 +286,7 @@ const keyForA = E[Symbol.iterator]().find(([, value]) => value === "A")[0]
 console.log(keyForA); // prints: B
 ```
 
-If adopted, TypeScript would add support for `@@iterator` while eventually deprecating existing reverse mapping support.
+If adopted, TypeScript would add support for `Symbol.iterator` while eventually deprecating existing reverse mapping support.
 
 
 ## `const enum`
@@ -321,13 +321,14 @@ adopted.
 While this proposal is intended to be rather limited in scope, there are several potential areas for future advancement
 in the form of follow-on proposals:
 
-- [Algebraic Data Types](#algebraic-data-types-adts)
+- [Algebraic Data Types](#algebraic-data-types-adt-enums)
 - [Decorators](#decorators)
 - [Auto-Initializers](#auto-initializers-1)
 
-## Algebraic Data Types (ADTs)
+## Algebraic Data Type (ADT) Enums
 
-Algebraic Data Types (ADT) are structured objects with some form of discriminant property. A future enhancement of an
+Algebraic Data Type (ADT) enums act like a discriminated union of structured types. ADT enum members describe a
+constructor function that produces an object with a discriminant property. A future enhancement of an
 ECMAScript `enum` declaration might support ADT enums in conjunction with [Extractors][] and [Pattern Matching][]:
 
 ```js
@@ -363,12 +364,43 @@ match (res) {
 }
 ```
 
+Here, `Option.Some` might describe a "constructor" function that produces an object discriminated by either a
+well-known symbol field or merely by its \[\[Prototype\]\], such that `Option.Some(0) instanceof Option.Some` is
+`true`. ADT enum members could also describe more complex shapes through the use of binding patterns, such as:
+
+```js
+enum Geometry {
+  Point({ x, y }),
+  Line(p1, p2),
+}
+
+const p1 = Geometry.Point({ x: 0, y: 1 });
+p1[0].x; // 0
+p1[0].y; // 1
+
+const p2 = Geometry.Point({ x: 2, y: 3 });
+const l = Geometry.Line(p1, p2);
+l[0] === p1; // true
+
+const printGeom = geom => match (geom) {
+  Geometry.Point({ let x, let y }): console.log(`Point({ x: ${x}, y: ${y} })`);
+  Geometry.Line(let p1, let p2): console.log(`Line(${printGeom(p1)}, ${printGeom(p2)})`);
+};
+
+printGeom(p1); // Point({ x: 0, y: 1 })
+printGeom(l); // Line(Point({ x: 0, y: 1 }), Point({ x: 2, y: 3 }))
+```
+
+ADT enum members may also need a mechanism to implement prototypal or static methods on the `enum`, which is one
+reason why we prefer `Symbol.iterator` to describe the domain of an `enum` vs. something like `Object.entries()`.
+
 ## Decorators
 
 In the future we may opt to extend support for [Decorators](https://github.com/tc39/proposal-decorators) to `enum`
 declarations to support serialization/deserialization, formatting, and FFI scenarios:
 
 ```js
+@WasmType("u1")
 enum Role {
   @Alias(["user", "person"], { ignoreCase: true })
   user = 1,
@@ -386,12 +418,16 @@ alternative syntax in a future proposal, such as the `of` clause described in an
 ```js
 enum Numbers of Number { zero, one, two, three }
 Numbers.zero; // 0
+
+enum Colors of String { red, green, blue }
+Colors.red; // "red"
 ```
 
 Or through some form of statically recognizable syntax:
 
 ```js
 auto enum Numbers { zero, one, two, three }
+Numbers.zero; // 0
 ```
 
 
