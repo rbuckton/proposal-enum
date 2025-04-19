@@ -12,7 +12,7 @@ represents a limited subset of functionality that TypeScript expands upon.
 
 ## Status
 
-**Stage:** 0  
+**Stage:** 1  
 **Champion:** Ron Buckton (@rbuckton)
 
 _For more information see the [TC39 proposal process](https://tc39.github.io/process-document/)._
@@ -470,6 +470,7 @@ The following is a high-level list of tasks to progress through each stage of th
 # Prior Discussion
 <!-- Links to prior discussion topics on https://esdiscuss.org -->
 
+* 
 * [Enums?](https://esdiscuss.org/topic/enums)
 * [Propose simpler string constant](https://esdiscuss.org/topic/propose-simpler-string-constant)
 * [Old version of this proposal](https://github.com/rbuckton/proposal-enum/tree/old)
